@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="YT Collector">
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <rect x="96" y="128" width="320" height="256" rx="56" fill="#dc2626"/>
+  <polygon points="224,192 352,256 224,320" fill="#ffffff"/>
+  <circle cx="392" cy="392" r="52" fill="#22c55e"/>
+  <path d="M368 392h48M392 368v48" stroke="#04130a" stroke-width="16" stroke-linecap="round"/>
+</svg>

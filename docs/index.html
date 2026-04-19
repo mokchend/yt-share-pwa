@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111827" />
+    <title>YT Collector</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="card">
+        <div class="logo">📺</div>
+        <h1>Envoyer une vidéo</h1>
+        <p class="subtitle">Partage une vidéo YouTube vers cette app, ou colle un lien ici.</p>
+
+        <div id="status" class="status hidden" aria-live="polite"></div>
+
+        <form id="submit-form" class="form">
+          <label for="url" class="label">Lien YouTube</label>
+          <input
+            id="url"
+            name="url"
+            type="url"
+            inputmode="url"
+            placeholder="https://www.youtube.com/watch?v=..."
+            autocomplete="off"
+            required
+          />
+
+          <button id="paste-button" type="button" class="secondary-button">
+            📋 Coller depuis le presse-papiers
+          </button>
+
+          <button id="submit-button" type="submit" class="primary-button">
+            📥 Envoyer
+          </button>
+        </form>
+
+        <div class="help-box">
+          <strong>Mode simple :</strong>
+          <span>YouTube → Partager → YT Collector</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
