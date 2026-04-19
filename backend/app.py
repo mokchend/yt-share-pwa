@@ -215,6 +215,8 @@ def submit():
     )
 
 
+# Gunicorn (Render, etc.) importe ce module sans exécuter __main__ : la base doit exister.
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(host=HOST, port=PORT, debug=DEBUG)
