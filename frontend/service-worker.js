@@ -1,4 +1,4 @@
-const CACHE_NAME = "yt-collector-cache-v2";
+const CACHE_NAME = "yt-collector-cache-v3";
 const ASSETS = [
   "./",
   "./index.html",

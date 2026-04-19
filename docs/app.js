@@ -1,4 +1,19 @@
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "https://yt-share-pwa-api.onrender.com";
+// Si config.js ne charge pas (cache SW, 404), ne pas retomber sur localhost en HTTPS.
+const DEFAULT_DEV_API = "http://127.0.0.1:5000";
+const DEFAULT_PRODUCTION_API = "https://yt-share-pwa-api.onrender.com";
+
+function resolveApiBaseUrl() {
+  const raw = window.APP_CONFIG?.API_BASE_URL;
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim().replace(/\/$/, "");
+  }
+  if (window.location.protocol === "https:") {
+    return DEFAULT_PRODUCTION_API;
+  }
+  return DEFAULT_DEV_API;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 function connectionErrorMessage() {
   if (window.location.protocol !== "https:") {
