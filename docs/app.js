@@ -1,5 +1,20 @@
 const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://127.0.0.1:5000";
 
+function connectionErrorMessage() {
+  if (window.location.protocol !== "https:") {
+    return "❌ Impossible de joindre le serveur";
+  }
+  try {
+    const u = new URL(API_BASE_URL, window.location.href);
+    if (u.protocol === "http:" && (u.hostname === "localhost" || u.hostname === "127.0.0.1")) {
+      return "❌ L’API pointe encore vers localhost en HTTP. Depuis cette page (HTTPS), le navigateur bloque l’appel. Mets l’URL HTTPS de ton backend dans config.js (voir config.example.js), republie, puis réessaie.";
+    }
+  } catch {
+    // ignore
+  }
+  return "❌ Impossible de joindre le serveur";
+}
+
 const form = document.getElementById("submit-form");
 const urlInput = document.getElementById("url");
 const statusBox = document.getElementById("status");
@@ -47,7 +62,7 @@ async function submitUrl(url, source = "manual") {
     showStatus("✅ Vidéo ajoutée avec succès", "success");
     form.reset();
   } catch (error) {
-    showStatus("❌ Impossible de joindre le serveur", "error");
+    showStatus(connectionErrorMessage(), "error");
   } finally {
     setLoading(false);
   }
