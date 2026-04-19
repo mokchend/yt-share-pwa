@@ -141,6 +141,22 @@ def insert_video(video_id: str, url: str, source: str, sender: str):
         conn.commit()
 
 
+@app.get("/")
+def root():
+    """Évite un 404 Flask quand on ouvre l’URL Render dans le navigateur (la PWA utilise /submit)."""
+    return jsonify(
+        {
+            "ok": True,
+            "service": "yt-share-backend",
+            "endpoints": {
+                "health": "/health",
+                "submit": "POST /submit (JSON: url, source)",
+                "videos": "/videos",
+            },
+        }
+    )
+
+
 @app.get("/health")
 def health():
     return jsonify({"ok": True, "service": "yt-share-backend"})
