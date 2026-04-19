@@ -46,6 +46,18 @@ function setLoading(isLoading) {
   submitButton.textContent = isLoading ? "⏳ Envoi..." : "📥 Envoyer";
 }
 
+async function readSubmitResponseBody(response) {
+  const trimmed = (await response.text()).trim();
+  if (!trimmed) {
+    return {};
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
 async function submitUrl(url, source = "manual") {
   setLoading(true);
   showStatus("Préparation de l'envoi...", "info");
@@ -59,7 +71,15 @@ async function submitUrl(url, source = "manual") {
       body: JSON.stringify({ url, source })
     });
 
-    const data = await response.json();
+    const data = await readSubmitResponseBody(response);
+    if (data === null) {
+      showStatus(
+        `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
+          "Souvent une erreur côté API (page HTML au lieu de JSON) : vérifie les logs du backend et redéploie si besoin.",
+        "error"
+      );
+      return;
+    }
 
     if (!response.ok) {
       const errorMessage = data.error === "invalid_youtube_url"

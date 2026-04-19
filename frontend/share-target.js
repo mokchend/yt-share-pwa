@@ -36,6 +36,18 @@ function showStatus(message, type = "info") {
   statusBox.className = `status ${type}`;
 }
 
+async function readSubmitResponseBody(response) {
+  const trimmed = (await response.text()).trim();
+  if (!trimmed) {
+    return {};
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return null;
+  }
+}
+
 function getSharedUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get("url") || params.get("text") || "";
@@ -48,7 +60,15 @@ async function submitSharedUrl(url) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, source: "pwa_share" })
     });
-    const data = await response.json();
+    const data = await readSubmitResponseBody(response);
+    if (data === null) {
+      showStatus(
+        `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
+          "Vérifie les logs du backend et redéploie si besoin.",
+        "error"
+      );
+      return;
+    }
 
     if (!response.ok) {
       showStatus("❌ Lien invalide", "error");
