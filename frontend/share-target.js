@@ -14,6 +14,23 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+function resolveApiKey() {
+  const raw = window.APP_CONFIG?.API_KEY;
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim();
+  }
+  return "";
+}
+
+function buildYoutubeSubmitHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  const key = resolveApiKey();
+  if (key) {
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 function connectionErrorMessage() {
   if (window.location.protocol !== "https:") {
     return "❌ Impossible de joindre le serveur";
@@ -53,25 +70,40 @@ function getSharedUrl() {
   return params.get("url") || params.get("text") || "";
 }
 
+function formatSubmitErrorMessage(data, response) {
+  if (data === null) {
+    return (
+      `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
+      "Vérifie les logs du backend et redéploie si besoin."
+    );
+  }
+  if (data.error === "invalid_youtube_url") {
+    return "❌ Lien YouTube invalide";
+  }
+  if (typeof data.detail === "string" && data.detail.trim()) {
+    return `❌ ${data.detail.trim()}`;
+  }
+  if (typeof data.message === "string" && data.message.trim()) {
+    return `❌ ${data.message.trim()}`;
+  }
+  return "❌ Lien invalide";
+}
+
 async function submitSharedUrl(url) {
   try {
-    const response = await fetch(`${API_BASE_URL}/submit`, {
+    const response = await fetch(`${API_BASE_URL}/youtube`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, source: "pwa_share" })
+      headers: buildYoutubeSubmitHeaders(),
+      body: JSON.stringify({ youtube_url: url })
     });
     const data = await readSubmitResponseBody(response);
     if (data === null) {
-      showStatus(
-        `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
-          "Vérifie les logs du backend et redéploie si besoin.",
-        "error"
-      );
+      showStatus(formatSubmitErrorMessage(data, response), "error");
       return;
     }
 
     if (!response.ok) {
-      showStatus("❌ Lien invalide", "error");
+      showStatus(formatSubmitErrorMessage(data, response), "error");
       return;
     }
 

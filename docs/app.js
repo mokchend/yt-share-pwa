@@ -15,6 +15,23 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+function resolveApiKey() {
+  const raw = window.APP_CONFIG?.API_KEY;
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim();
+  }
+  return "";
+}
+
+function buildYoutubeSubmitHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  const key = resolveApiKey();
+  if (key) {
+    headers["X-API-Key"] = key;
+  }
+  return headers;
+}
+
 function connectionErrorMessage() {
   if (window.location.protocol !== "https:") {
     return "❌ Impossible de joindre le serveur";
@@ -58,34 +75,44 @@ async function readSubmitResponseBody(response) {
   }
 }
 
-async function submitUrl(url, source = "manual") {
+function formatSubmitErrorMessage(data, response) {
+  if (data === null) {
+    return (
+      `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
+      "Souvent une erreur côté API (page HTML au lieu de JSON) : vérifie les logs du backend et redéploie si besoin."
+    );
+  }
+  if (data.error === "invalid_youtube_url") {
+    return "❌ Lien YouTube invalide";
+  }
+  if (typeof data.detail === "string" && data.detail.trim()) {
+    return `❌ ${data.detail.trim()}`;
+  }
+  if (typeof data.message === "string" && data.message.trim()) {
+    return `❌ ${data.message.trim()}`;
+  }
+  return "❌ Erreur pendant l'envoi";
+}
+
+async function submitUrl(url) {
   setLoading(true);
   showStatus("Préparation de l'envoi...", "info");
 
   try {
-    const response = await fetch(`${API_BASE_URL}/submit`, {
+    const response = await fetch(`${API_BASE_URL}/youtube`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ url, source })
+      headers: buildYoutubeSubmitHeaders(),
+      body: JSON.stringify({ youtube_url: url })
     });
 
     const data = await readSubmitResponseBody(response);
     if (data === null) {
-      showStatus(
-        `❌ Réponse serveur invalide (HTTP ${response.status}). ` +
-          "Souvent une erreur côté API (page HTML au lieu de JSON) : vérifie les logs du backend et redéploie si besoin.",
-        "error"
-      );
+      showStatus(formatSubmitErrorMessage(data, response), "error");
       return;
     }
 
     if (!response.ok) {
-      const errorMessage = data.error === "invalid_youtube_url"
-        ? "❌ Lien YouTube invalide"
-        : "❌ Erreur pendant l'envoi";
-      showStatus(errorMessage, "error");
+      showStatus(formatSubmitErrorMessage(data, response), "error");
       return;
     }
 
@@ -110,7 +137,7 @@ form.addEventListener("submit", async (event) => {
     showStatus("❌ Merci de coller un lien", "error");
     return;
   }
-  await submitUrl(url, "manual_form");
+  await submitUrl(url);
 });
 
 pasteButton?.addEventListener("click", async () => {

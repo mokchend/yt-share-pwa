@@ -1,0 +1,6 @@
+# Khmer karaoke pipeline — see karaoke_pipeline.py for torch / whisper / whisperx.
+# Install: py -m pip install -r pipeline/requirements.txt
+
+yt-dlp
+demucs
+soundfile>=0.12.1
