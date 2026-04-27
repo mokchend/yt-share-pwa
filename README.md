@@ -27,12 +27,30 @@ Le backend Flask peut être déployé sur Render. En revanche, le système de fi
 
 ## Recommandation d'hébergement
 
-### Option A — simple pour tester
+### Option A — actuelle avec Cloudflare Tunnel
+- Frontend sur GitHub Pages
+- Backend FastAPI lancé sur ton PC
+- Cloudflare Tunnel expose le backend local avec ton DNS : `https://api.angkorvibe.com`
+- La PWA appelle `POST https://api.angkorvibe.com/youtube`
+
+Avec cette option, tu n'as plus besoin de `xxxapi.onrender.com`. Render servait avant à donner une URL publique HTTPS au backend, parce qu'un téléphone ou une PWA hébergée sur GitHub Pages ne peut pas appeler `http://127.0.0.1` sur ton PC. Maintenant, Cloudflare Tunnel fait ce rôle : il reçoit les appels publics sur `https://api.angkorvibe.com`, puis les route vers ton backend local.
+
+Flux actuel :
+
+```text
+Phone / PWA
+  -> https://api.angkorvibe.com/youtube
+  -> Cloudflare Tunnel
+  -> backend local
+  -> worker / pipeline karaoke
+```
+
+### Option B — simple pour tester dans le cloud
 - Frontend sur GitHub Pages
 - Backend sur Render
 - SQLite pour test ou démo
 
-### Option B — plus sérieuse
+### Option C — plus sérieuse dans le cloud
 - Frontend sur GitHub Pages
 - Backend sur Render
 - Base Postgres managée au lieu de SQLite
@@ -66,6 +84,7 @@ Puis ouvre `http://127.0.0.1:8080`.
 ## Configuration du frontend
 
 Le frontend lit l'URL du backend depuis `frontend/config.js`.
+En production, utilise ton DNS Cloudflare comme URL de base : `https://api.angkorvibe.com`.
 
 ### Pour le local
 
@@ -79,7 +98,8 @@ window.APP_CONFIG = {
 
 ```js
 window.APP_CONFIG = {
-  API_BASE_URL: "https://ton-backend.onrender.com"
+  API_BASE_URL: "https://api.angkorvibe.com",
+  API_KEY: "change-this-secret"
 };
 ```
 
@@ -135,26 +155,24 @@ Le `share_target` permet à une PWA installée de devenir une cible dans le menu
 
 ## Endpoints
 
-- `GET /health`
-- `POST /submit`
-- `GET /videos`
+- `POST https://api.angkorvibe.com/youtube`
 
-## Payload `/submit`
+## Payload `/youtube`
 
 ```json
 {
-  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "source": "pwa_share"
+  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
+
+L'appel doit inclure l'en-tête `X-API-Key` configuré dans `config.js`.
 
 ## Réponse
 
 ```json
 {
-  "ok": true,
-  "status": "created",
-  "video_id": "dQw4w9WgXcQ"
+  "status": "queued",
+  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
@@ -162,9 +180,7 @@ ou
 
 ```json
 {
-  "ok": true,
-  "status": "duplicate",
-  "video_id": "dQw4w9WgXcQ"
+  "detail": "Invalid API key"
 }
 ```
 

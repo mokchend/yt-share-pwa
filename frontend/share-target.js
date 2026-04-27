@@ -1,5 +1,5 @@
 const DEFAULT_DEV_API = "http://127.0.0.1:5000";
-const DEFAULT_PRODUCTION_API = "https://yt-share-pwa-api.onrender.com";
+const DEFAULT_PRODUCTION_API = "https://api.angkorvibe.com";
 
 function resolveApiBaseUrl() {
   const raw = window.APP_CONFIG?.API_BASE_URL;

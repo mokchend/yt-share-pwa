@@ -141,15 +141,45 @@ def insert_video(video_id: str, url: str, source: str, sender: str):
         conn.commit()
 
 
+def create_video_submission(url: str, source: str, sender: str):
+    if not url:
+        return {"ok": False, "error": "missing_url"}, 400
+
+    video_id = extract_video_id(url)
+    if not video_id:
+        return {"ok": False, "error": "invalid_youtube_url"}, 400
+
+    existing = get_video(video_id)
+    if existing:
+        return {"ok": True, "status": "duplicate", "video_id": video_id}, 200
+
+    insert_video(video_id, url, source, sender)
+
+    email_status = "disabled"
+    try:
+        send_email_notification(video_id, url, source)
+        email_status = "sent" if SMTP_ENABLED else "disabled"
+    except Exception as exc:
+        email_status = f"error:{exc.__class__.__name__}"
+
+    return {
+        "ok": True,
+        "status": "created",
+        "video_id": video_id,
+        "email": email_status,
+    }, 200
+
+
 @app.get("/")
 def root():
-    """Évite un 404 Flask quand on ouvre l’URL Render dans le navigateur (la PWA utilise /submit)."""
+    """Évite un 404 Flask quand on ouvre l’URL de l'API dans le navigateur."""
     return jsonify(
         {
             "ok": True,
             "service": "yt-share-backend",
             "endpoints": {
                 "health": "/health",
+                "youtube": "POST /youtube (JSON: youtube_url)",
                 "submit": "POST /submit (JSON: url, source)",
                 "videos": "/videos",
             },
@@ -185,34 +215,17 @@ def submit():
     source = data.get("source", "unknown")
     sender = data.get("sender", "anonymous")
 
-    if not url:
-        return jsonify({"ok": False, "error": "missing_url"}), 400
+    body, status = create_video_submission(url, source, sender)
+    return jsonify(body), status
 
-    video_id = extract_video_id(url)
-    if not video_id:
-        return jsonify({"ok": False, "error": "invalid_youtube_url"}), 400
 
-    existing = get_video(video_id)
-    if existing:
-        return jsonify({"ok": True, "status": "duplicate", "video_id": video_id})
+@app.post("/youtube")
+def youtube():
+    data = request.get_json(silent=True) or {}
+    url = normalize_url(data.get("youtube_url", ""))
 
-    insert_video(video_id, url, source, sender)
-
-    email_status = "disabled"
-    try:
-        send_email_notification(video_id, url, source)
-        email_status = "sent" if SMTP_ENABLED else "disabled"
-    except Exception as exc:
-        email_status = f"error:{exc.__class__.__name__}"
-
-    return jsonify(
-        {
-            "ok": True,
-            "status": "created",
-            "video_id": video_id,
-            "email": email_status,
-        }
-    )
+    body, status = create_video_submission(url, "pwa_youtube", "anonymous")
+    return jsonify(body), status
 
 
 # Gunicorn (Render, etc.) importe ce module sans exécuter __main__ : la base doit exister.
