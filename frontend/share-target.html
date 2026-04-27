@@ -10,11 +10,17 @@
   <body>
     <main class="app-shell">
       <section class="card">
-        <div class="logo">📥</div>
-        <h1>Réception du partage</h1>
-        <p class="subtitle">Traitement du lien YouTube...</p>
-        <div id="status" class="status info">Préparation de l'envoi...</div>
-        <a href="./index.html" class="secondary-link">Retour à l'accueil</a>
+        <div class="card-header">
+          <div class="logo">📥</div>
+          <div class="language-switcher" aria-label="Language">
+            <button type="button" class="language-button" data-language="en" aria-label="English">🇺🇸</button>
+            <button type="button" class="language-button" data-language="fr" aria-label="Français">🇫🇷</button>
+          </div>
+        </div>
+        <h1 data-i18n="shareTitle">Réception du partage</h1>
+        <p class="subtitle" data-i18n="shareSubtitle">Traitement du lien YouTube...</p>
+        <div id="status" class="status info" data-i18n="statusPreparing">Préparation de l'envoi...</div>
+        <a href="./index.html" class="secondary-link" data-i18n="backHome">Retour à l'accueil</a>
       </section>
     </main>
 

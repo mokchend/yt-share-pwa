@@ -42,10 +42,42 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
 .logo {
   font-size: 56px;
   line-height: 1;
-  margin-bottom: 12px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.language-button {
+  min-height: 34px;
+  width: 38px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.language-button.active {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.7);
 }
 
 h1 {
@@ -91,6 +123,23 @@ button, .secondary-link {
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
+}
+
+.language-switcher .language-button {
+  min-height: 34px;
+  width: 38px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.language-switcher .language-button.active {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.7);
 }
 
 .primary-button {

@@ -12,19 +12,11 @@ services:
         value: "false"
       - key: ALLOWED_ORIGINS
         sync: false
-      - key: SMTP_ENABLED
-        value: "false"
-      - key: SMTP_HOST
+      - key: YOUTUBE_COLLECTOR_API_KEY
         sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USERNAME
+      - key: MQTT_BROKER
         sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: SMTP_USE_TLS
-        value: "true"
-      - key: EMAIL_TO
-        sync: false
-      - key: EMAIL_FROM
-        sync: false
+      - key: MQTT_PORT
+        value: "1883"
+      - key: MQTT_TOPIC
+        value: youtube/jobs

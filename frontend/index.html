@@ -12,14 +12,20 @@
   <body>
     <main class="app-shell">
       <section class="card">
-        <div class="logo">📺</div>
-        <h1>Envoyer une vidéo</h1>
-        <p class="subtitle">Partage une vidéo YouTube vers cette app, ou colle un lien ici.</p>
+        <div class="card-header">
+          <div class="logo">📺</div>
+          <div class="language-switcher" aria-label="Language">
+            <button type="button" class="language-button" data-language="en" aria-label="English">🇺🇸</button>
+            <button type="button" class="language-button" data-language="fr" aria-label="Français">🇫🇷</button>
+          </div>
+        </div>
+        <h1 data-i18n="appTitle">Envoyer une vidéo</h1>
+        <p class="subtitle" data-i18n="appSubtitle">Partage une vidéo YouTube vers cette app, ou colle un lien ici.</p>
 
         <div id="status" class="status hidden" aria-live="polite"></div>
 
         <form id="submit-form" class="form">
-          <label for="url" class="label">Lien YouTube</label>
+          <label for="url" class="label" data-i18n="youtubeLabel">Lien YouTube</label>
           <input
             id="url"
             name="url"
@@ -31,17 +37,17 @@
           />
 
           <button id="paste-button" type="button" class="secondary-button">
-            📋 Coller depuis le presse-papiers
+            <span data-i18n="pasteButton">📋 Coller depuis le presse-papiers</span>
           </button>
 
           <button id="submit-button" type="submit" class="primary-button">
-            📥 Envoyer
+            <span data-i18n="submitButton">📥 Envoyer</span>
           </button>
         </form>
 
         <div class="help-box">
-          <strong>Mode simple :</strong>
-          <span>YouTube → Partager → YT Collector</span>
+          <strong data-i18n="simpleModeLabel">Mode simple :</strong>
+          <span data-i18n="simpleModeText">YouTube → Partager → YT Collector</span>
         </div>
       </section>
     </main>

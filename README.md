@@ -1,11 +1,11 @@
 # YouTube Share Collector PWA
 
-Projet complet pour collecter des liens YouTube depuis le menu **Partager** d'un téléphone, supprimer les doublons, et envoyer une notification email côté serveur.
+Projet complet pour collecter des liens YouTube depuis le menu **Partager** d'un téléphone et les envoyer dans une file MQTT pour le worker karaoke.
 
 ## Ce que contient le projet
 
 - `frontend/` : PWA installable
-- `backend/` : API Flask + SQLite + SMTP optionnel
+- `backend/` : API Flask qui publie les jobs dans MQTT
 - `render.yaml` : configuration de déploiement Render pour le backend
 - `.nojekyll` : utile si tu publies le frontend sur GitHub Pages depuis la racine d'un dépôt
 
@@ -14,16 +14,16 @@ Projet complet pour collecter des liens YouTube depuis le menu **Partager** d'un
 - PWA installable
 - Support `share_target` pour recevoir un lien depuis le menu Partager
 - Fallback manuel `coller + envoyer`
-- Déduplication par `video_id`
-- Stockage SQLite
-- Email automatique optionnel via SMTP
+- Validation du lien YouTube
+- Publication MQTT vers le topic `youtube/jobs`
+- Protection simple avec l'en-tête `X-API-Key`
 - UI mobile très simple
 
 ## Important avant la mise en prod
 
 Le frontend peut être déployé facilement sur GitHub Pages car il est 100% statique. GitHub Pages publie les fichiers statiques poussés dans un dépôt ou dans un dossier `/docs`. citeturn721182search1turn721182search7
 
-Le backend Flask peut être déployé sur Render. En revanche, le système de fichiers Render est éphémère par défaut. Sans disque persistant, ton fichier SQLite sera perdu à chaque redéploiement ou redémarrage. Les disques persistants Render sont réservés aux services payants. citeturn721182search0turn721182search6
+Le backend ne stocke plus les vidéos dans SQLite et n'envoie plus d'email SMTP. Il publie seulement un message MQTT, puis le worker local traite le téléchargement et la pipeline karaoke.
 
 ## Recommandation d'hébergement
 
@@ -48,12 +48,12 @@ Phone / PWA
 ### Option B — simple pour tester dans le cloud
 - Frontend sur GitHub Pages
 - Backend sur Render
-- SQLite pour test ou démo
+- Broker MQTT accessible depuis le backend
 
 ### Option C — plus sérieuse dans le cloud
 - Frontend sur GitHub Pages
 - Backend sur Render
-- Base Postgres managée au lieu de SQLite
+- Broker MQTT managé ou sécurisé
 
 ## Développement local
 
@@ -132,8 +132,10 @@ Une PWA doit être servie en HTTPS, ou en localhost/127.0.0.1 pour le développe
 
 ### Variables d'environnement utiles
 - `ALLOWED_ORIGINS=https://ton-site.github.io`
-- `SMTP_ENABLED=true` si tu veux les emails
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_TO`, `EMAIL_FROM`
+- `YOUTUBE_COLLECTOR_API_KEY=change-this-secret`
+- `MQTT_BROKER=localhost`
+- `MQTT_PORT=1883`
+- `MQTT_TOPIC=youtube/jobs`
 
 ### CORS
 Ne laisse pas `ALLOWED_ORIGINS=*` en prod. Mets l'URL exacte du frontend.
@@ -155,9 +157,19 @@ Le `share_target` permet à une PWA installée de devenir une cible dans le menu
 
 ## Endpoints
 
+- `GET /health`
 - `POST https://api.angkorvibe.com/youtube`
 
 ## Payload `/youtube`
+
+Le lien doit commencer par `https://www.youtube.com/watch?v=`. Si l'utilisateur colle un lien avec d'autres paramètres YouTube, l'app et le backend gardent seulement le paramètre `v`.
+
+Exemple nettoyé :
+
+```text
+https://www.youtube.com/watch?v=6_pcEt9mPTc&list=RD6_pcEt9mPTc&start_radio=1
+-> https://www.youtube.com/watch?v=6_pcEt9mPTc
+```
 
 ```json
 {
@@ -166,6 +178,17 @@ Le `share_target` permet à une PWA installée de devenir une cible dans le menu
 ```
 
 L'appel doit inclure l'en-tête `X-API-Key` configuré dans `config.js`.
+
+Le backend publie ensuite ce message dans MQTT sur `youtube/jobs` :
+
+```json
+{
+  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "video_id": "dQw4w9WgXcQ",
+  "source": "pwa_youtube",
+  "sender": "anonymous"
+}
+```
 
 ## Réponse
 
@@ -186,15 +209,4 @@ ou
 
 ## Limite importante
 
-Avec la version actuelle en SQLite :
-- local = très bien
-- démo = très bien
-- production gratuite sur Render = pas fiable dans la durée à cause du filesystem éphémère. citeturn721182search0turn721182search6
-
-## Évolution recommandée
-
-Quand ton MVP marche, passe le backend sur :
-- Postgres
-- ou Supabase / Neon / autre DB externe
-
-Ainsi tu gardes le même frontend PWA, et tu rends seulement le backend plus robuste.
+Le backend doit pouvoir joindre le broker MQTT configuré. Dans ton setup Cloudflare Tunnel actuel, le backend tourne sur ton PC et peut publier sur `localhost:1883`, comme dans `khmer_karaoke_ai/api/mqtt_client.py`.
