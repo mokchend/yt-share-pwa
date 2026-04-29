@@ -5,3 +5,7 @@ karaoke_projects/
 *.log
 *.log.*
 __pycache__/
+
+# Local secrets
+.env
+backend/.env

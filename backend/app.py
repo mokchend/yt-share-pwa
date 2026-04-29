@@ -3,6 +3,9 @@ import re
 import json
 import logging
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -22,6 +25,14 @@ API_KEY = os.getenv("YOUTUBE_COLLECTOR_API_KEY", "change-this-secret")
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
 MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 MQTT_TOPIC = os.getenv("MQTT_TOPIC", "youtube/jobs")
+SMS_ALERT_ENABLED = os.getenv("SMS_ALERT_ENABLED", "true").lower() == "true"
+FREE_MOBILE_SMS_USER = os.getenv("FREE_MOBILE_SMS_USER", "")
+FREE_MOBILE_SMS_PASS = os.getenv("FREE_MOBILE_SMS_PASS", "")
+SMS_ALERT_TIMEOUT_SECONDS = float(os.getenv("SMS_ALERT_TIMEOUT_SECONDS", "5"))
+SMS_ALERT_MESSAGE_TEMPLATE = os.getenv(
+    "SMS_ALERT_MESSAGE_TEMPLATE",
+    "New YouTube job queued: {youtube_url}",
+)
 YOUTUBE_WATCH_PREFIX = "https://www.youtube.com/watch?v="
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = Path(os.getenv("YT_SHARE_LOG_DIR", str(PROJECT_ROOT))).resolve()
@@ -117,6 +128,42 @@ def publish_event(event: dict):
     )
 
 
+def send_sms_alert(event: dict) -> str:
+    if not SMS_ALERT_ENABLED:
+        return "disabled"
+    if not FREE_MOBILE_SMS_USER or not FREE_MOBILE_SMS_PASS:
+        backend_logger.warning("SMS alert skipped because Free Mobile credentials are not configured")
+        return "not_configured"
+
+    message = SMS_ALERT_MESSAGE_TEMPLATE.format(
+        youtube_url=event.get("youtube_url", ""),
+        video_id=event.get("video_id", ""),
+        source=event.get("source", ""),
+        sender=event.get("sender", ""),
+    )
+    query = urllib.parse.urlencode(
+        {
+            "user": FREE_MOBILE_SMS_USER,
+            "pass": FREE_MOBILE_SMS_PASS,
+            "msg": message,
+        }
+    )
+    request_url = f"https://smsapi.free-mobile.fr/sendmsg?{query}"
+    request_obj = urllib.request.Request(
+        request_url,
+        headers={"Accept": "application/json"},
+        method="GET",
+    )
+
+    with urllib.request.urlopen(request_obj, timeout=SMS_ALERT_TIMEOUT_SECONDS) as response:
+        body = response.read(500).decode("utf-8", errors="replace")
+        if response.status >= 400:
+            raise RuntimeError(f"Free Mobile SMS returned HTTP {response.status}: {body}")
+
+    backend_logger.info("SMS alert sent for video_id=%s", event.get("video_id"))
+    return "sent"
+
+
 def create_video_submission(url: str, source: str, sender: str):
     if not url:
         return {"ok": False, "error": "missing_url"}, 400
@@ -144,9 +191,16 @@ def create_video_submission(url: str, source: str, sender: str):
         )
         return {"ok": False, "error": "mqtt_publish_failed"}, 502
 
+    try:
+        sms_alert = send_sms_alert(event)
+    except Exception:
+        backend_logger.exception("Failed to send SMS alert for video_id=%s", video_id)
+        sms_alert = "failed"
+
     return {
         "status": "queued",
         "youtube_url": cleaned_url,
+        "sms_alert": sms_alert,
     }, 200
 
 

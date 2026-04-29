@@ -16,6 +16,7 @@ Projet complet pour collecter des liens YouTube depuis le menu **Partager** d'un
 - Fallback manuel `coller + envoyer`
 - Validation du lien YouTube
 - Publication MQTT vers le topic `youtube/jobs`
+- Alerte SMS Free Mobile quand une vidéo est ajoutée
 - Protection simple avec l'en-tête `X-API-Key`
 - UI mobile très simple
 
@@ -28,6 +29,7 @@ Le backend ne stocke plus les vidéos dans SQLite et n'envoie plus d'email SMTP.
 ## Recommandation d'hébergement
 
 ### Option A — actuelle avec Cloudflare Tunnel
+
 - Frontend sur GitHub Pages
 - Backend FastAPI lancé sur ton PC
 - Cloudflare Tunnel expose le backend local avec ton DNS : `https://api.angkorvibe.com`
@@ -46,11 +48,13 @@ Phone / PWA
 ```
 
 ### Option B — simple pour tester dans le cloud
+
 - Frontend sur GitHub Pages
 - Backend sur Render
 - Broker MQTT accessible depuis le backend
 
 ### Option C — plus sérieuse dans le cloud
+
 - Frontend sur GitHub Pages
 - Backend sur Render
 - Broker MQTT managé ou sécurisé
@@ -106,6 +110,7 @@ window.APP_CONFIG = {
 ## Déploiement du frontend sur GitHub Pages
 
 ### Option la plus simple
+
 1. crée un dépôt GitHub
 2. pousse le contenu du dossier `frontend/` dans la racine du dépôt **ou** dans un dossier `docs/`
 3. dans les paramètres GitHub Pages, choisis la branche et le dossier publiés
@@ -114,6 +119,7 @@ window.APP_CONFIG = {
 GitHub Pages permet précisément de publier soit depuis la racine d'une branche, soit depuis un dossier `/docs`. citeturn721182search7
 
 ### Fichiers importants côté frontend
+
 - `manifest.webmanifest`
 - `service-worker.js`
 - `config.js`
@@ -124,6 +130,7 @@ Une PWA doit être servie en HTTPS, ou en localhost/127.0.0.1 pour le développe
 ## Déploiement du backend sur Render
 
 ### Avec le fichier `render.yaml`
+
 1. crée un dépôt GitHub avec tout le projet
 2. connecte le dépôt à Render
 3. crée un nouveau Web Service Blueprint ou importe le dépôt
@@ -131,14 +138,21 @@ Une PWA doit être servie en HTTPS, ou en localhost/127.0.0.1 pour le développe
 5. renseigne les variables d'environnement manquantes
 
 ### Variables d'environnement utiles
+
 - `ALLOWED_ORIGINS=https://ton-site.github.io`
 - `YOUTUBE_COLLECTOR_API_KEY=change-this-secret`
 - `MQTT_BROKER=localhost`
 - `MQTT_PORT=1883`
 - `MQTT_TOPIC=youtube/jobs`
+- `SMS_ALERT_ENABLED=true`
+- `FREE_MOBILE_SMS_USER=ton-identifiant-free-mobile`
+- `FREE_MOBILE_SMS_PASS=ta-cle-api-sms-free-mobile`
+- `SMS_ALERT_TIMEOUT_SECONDS=5`
+- `SMS_ALERT_MESSAGE_TEMPLATE=New YouTube job queued: {youtube_url}`
 
 ### CORS
-Ne laisse pas `ALLOWED_ORIGINS=*` en prod. Mets l'URL exacte du frontend.
+
+Ne laisse pas `ALLOWED_ORIGINS=`* en prod. Mets l'URL exacte du frontend.
 
 ## Installation utilisateur
 
@@ -146,10 +160,10 @@ Ouvre l'URL publique de la PWA depuis ton téléphone. Si le frontend est publi�
 
 ### Android
 
-1. Ouvre l'URL de la PWA dans **Chrome** sur Android : https://mokchend.github.io/yt-share-pwa/
+1. Ouvre l'URL de la PWA dans **Chrome** sur Android : [https://mokchend.github.io/yt-share-pwa/](https://mokchend.github.io/yt-share-pwa/)
 2. Attends que la page charge complètement.
 3. Appuie sur le menu Chrome `⋮`.
-4. Choisis **Installer l'application** ou **Ajouter à l'écran d'accueil**.
+4. Choisis **Installer l'application** ou **Ajouter à l'écran d'accueil**.mq
 5. Confirme avec **Installer**.
 6. Ouvre l'app **YT Collector** depuis l'écran d'accueil.
 7. Pour envoyer une vidéo : ouvre YouTube → vidéo → **Partager** → choisis **YT Collector**.
@@ -206,6 +220,25 @@ Tu peux changer le dossier avec `YT_SHARE_LOG_DIR`. Exemple dans `backend/.env` 
 YT_SHARE_LOG_DIR=C:\dev\khmer_karaoke\yt-share-pwa
 ```
 
+## Alerte SMS Free Mobile
+
+Quand `POST /youtube` reçoit un lien valide et publie le job dans MQTT, le backend appelle ensuite l'API gratuite Free Mobile :
+
+```text
+https://smsapi.free-mobile.fr/sendmsg
+```
+
+Configure les identifiants dans `backend/.env` sur la machine qui lance le backend :
+
+```text
+SMS_ALERT_ENABLED=true
+FREE_MOBILE_SMS_USER=ton-identifiant-free-mobile
+FREE_MOBILE_SMS_PASS=ta-cle-api-sms-free-mobile
+SMS_ALERT_MESSAGE_TEMPLATE=New YouTube job queued: {youtube_url}
+```
+
+Les variables `SMS_ALERT_MESSAGE_TEMPLATE` peuvent utiliser `{youtube_url}`, `{video_id}`, `{source}` et `{sender}`. Si l'envoi SMS échoue, le backend log l'erreur mais garde quand même la vidéo en file MQTT.
+
 Important : si l'erreur est **Unable to reach the server** et que `frontend.log` ne reçoit rien au moment du test, cela veut dire que le navigateur n'arrive probablement pas à joindre l'API du tout (DNS, Cloudflare Tunnel, CORS, backend arrêté, mauvais `API_BASE_URL`).
 
 ## Payload `/youtube`
@@ -243,7 +276,8 @@ Le backend publie ensuite ce message dans MQTT sur `youtube/jobs` :
 ```json
 {
   "status": "queued",
-  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "sms_alert": "sent"
 }
 ```
 

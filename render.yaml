@@ -20,3 +20,13 @@ services:
         value: "1883"
       - key: MQTT_TOPIC
         value: youtube/jobs
+      - key: SMS_ALERT_ENABLED
+        value: "true"
+      - key: FREE_MOBILE_SMS_USER
+        sync: false
+      - key: FREE_MOBILE_SMS_PASS
+        sync: false
+      - key: SMS_ALERT_TIMEOUT_SECONDS
+        value: "5"
+      - key: SMS_ALERT_MESSAGE_TEMPLATE
+        value: "New YouTube job queued: {youtube_url}"
