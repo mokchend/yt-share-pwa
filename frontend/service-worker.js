@@ -1,9 +1,10 @@
-const CACHE_NAME = "yt-collector-cache-v8";
+const CACHE_NAME = "yt-collector-cache-v9";
 const ASSETS = [
   "./",
   "./index.html",
   "./share-target.html",
   "./styles.css",
+  "./client-log.js",
   "./app.js",
   "./share-target.js",
   "./manifest.webmanifest",

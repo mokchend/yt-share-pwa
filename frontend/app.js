@@ -66,6 +66,8 @@ function resolveApiBaseUrl() {
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
+const clientLog = window.YT_CLIENT_LOG;
+clientLog?.init(API_BASE_URL);
 
 function resolveApiKey() {
   const raw = window.APP_CONFIG?.API_KEY;
@@ -102,6 +104,14 @@ function cleanYoutubeWatchUrl(rawUrl) {
       return "";
     }
     return `${YOUTUBE_WATCH_PREFIX}${videoId}`;
+  } catch {
+    return "";
+  }
+}
+
+function getYoutubeVideoId(url) {
+  try {
+    return new URL(url).searchParams.get("v") || "";
   } catch {
     return "";
   }
@@ -213,12 +223,21 @@ function formatSubmitErrorMessage(data, response) {
 async function submitUrl(url) {
   setLoading(true);
   showStatus(t("statusPreparing"), "info");
+  clientLog?.write("submit_start", {
+    videoId: getYoutubeVideoId(url)
+  });
 
   try {
     const response = await fetch(`${API_BASE_URL}/youtube`, {
       method: "POST",
       headers: buildYoutubeSubmitHeaders(),
       body: JSON.stringify({ youtube_url: url })
+    });
+    clientLog?.write("submit_response", {
+      videoId: getYoutubeVideoId(url),
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get("content-type") || ""
     });
 
     const data = await readSubmitResponseBody(response);
@@ -235,6 +254,11 @@ async function submitUrl(url) {
     showStatus(t("statusSuccess"), "success");
     form.reset();
   } catch (error) {
+    clientLog?.write("submit_fetch_error", {
+      videoId: getYoutubeVideoId(url),
+      errorName: error?.name || "",
+      errorMessage: error?.message || ""
+    });
     showStatus(connectionErrorMessage(), "error");
   } finally {
     setLoading(false);

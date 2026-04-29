@@ -50,6 +50,40 @@ from typing import Any, Iterable
 from urllib.parse import quote_plus
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOG_DIR = Path(os.getenv("YT_SHARE_LOG_DIR", str(PROJECT_ROOT))).resolve()
+
+
+class TeeStream:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data: str) -> int:
+        for stream in self.streams:
+            stream.write(data)
+            stream.flush()
+        return len(data)
+
+    def flush(self) -> None:
+        for stream in self.streams:
+            stream.flush()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.streams[0], name)
+
+
+def setup_pipeline_log() -> tuple[Any, Any, Any]:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIR / "pipeline.log"
+    log_file = log_path.open("a", encoding="utf-8")
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    sys.stdout = TeeStream(sys.stdout, log_file)
+    sys.stderr = TeeStream(sys.stderr, log_file)
+    print(f"[LOG] Writing pipeline log: {log_path}")
+    return log_file, original_stdout, original_stderr
+
+
 # -----------------------------
 # Configuration / data models
 # -----------------------------
@@ -889,6 +923,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    _pipeline_log_file, _original_stdout, _original_stderr = setup_pipeline_log()
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
@@ -897,3 +932,7 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"\n[ERROR] {exc}")
         raise SystemExit(1)
+    finally:
+        sys.stdout = _original_stdout
+        sys.stderr = _original_stderr
+        _pipeline_log_file.close()

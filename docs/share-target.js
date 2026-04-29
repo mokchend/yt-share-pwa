@@ -51,6 +51,8 @@ function resolveApiBaseUrl() {
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
+const clientLog = window.YT_CLIENT_LOG;
+clientLog?.init(API_BASE_URL);
 
 function resolveApiKey() {
   const raw = window.APP_CONFIG?.API_KEY;
@@ -87,6 +89,14 @@ function cleanYoutubeWatchUrl(rawUrl) {
       return "";
     }
     return `${YOUTUBE_WATCH_PREFIX}${videoId}`;
+  } catch {
+    return "";
+  }
+}
+
+function getYoutubeVideoId(url) {
+  try {
+    return new URL(url).searchParams.get("v") || "";
   } catch {
     return "";
   }
@@ -191,15 +201,28 @@ function formatSubmitErrorMessage(data, response) {
 async function submitSharedUrl(url) {
   const cleanedUrl = cleanYoutubeWatchUrl(url);
   if (!cleanedUrl) {
+    clientLog?.write("share_invalid_url", {
+      receivedLength: String(url || "").length
+    });
     showStatus(t("errorInvalidUrl"), "error");
     return;
   }
+
+  clientLog?.write("share_submit_start", {
+    videoId: getYoutubeVideoId(cleanedUrl)
+  });
 
   try {
     const response = await fetch(`${API_BASE_URL}/youtube`, {
       method: "POST",
       headers: buildYoutubeSubmitHeaders(),
       body: JSON.stringify({ youtube_url: cleanedUrl })
+    });
+    clientLog?.write("share_submit_response", {
+      videoId: getYoutubeVideoId(cleanedUrl),
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get("content-type") || ""
     });
     const data = await readSubmitResponseBody(response);
     if (data === null) {
@@ -214,6 +237,11 @@ async function submitSharedUrl(url) {
 
     showStatus(t("statusSuccess"), "success");
   } catch (error) {
+    clientLog?.write("share_fetch_error", {
+      videoId: getYoutubeVideoId(cleanedUrl),
+      errorName: error?.name || "",
+      errorMessage: error?.message || ""
+    });
     showStatus(connectionErrorMessage(), "error");
   }
 }
@@ -223,6 +251,7 @@ async function submitSharedUrl(url) {
 
   const sharedUrl = getSharedUrl();
   if (!sharedUrl) {
+    clientLog?.write("share_no_link");
     showStatus(t("errorNoLink"), "error");
     return;
   }

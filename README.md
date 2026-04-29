@@ -142,16 +142,47 @@ Ne laisse pas `ALLOWED_ORIGINS=*` en prod. Mets l'URL exacte du frontend.
 
 ## Installation utilisateur
 
+Ouvre l'URL publique de la PWA depuis ton téléphone. Si le frontend est publié avec GitHub Pages, utilise l'URL GitHub Pages du dossier `docs/`. L'API appelée par l'app reste `https://api.angkorvibe.com/youtube`.
+
 ### Android
-1. ouvrir l'URL de la PWA dans Chrome
-2. installer l'application
-3. depuis YouTube → Partager → choisir **YT Collector**
+
+1. Ouvre l'URL de la PWA dans **Chrome** sur Android : https://mokchend.github.io/yt-share-pwa/
+2. Attends que la page charge complètement.
+3. Appuie sur le menu Chrome `⋮`.
+4. Choisis **Installer l'application** ou **Ajouter à l'écran d'accueil**.
+5. Confirme avec **Installer**.
+6. Ouvre l'app **YT Collector** depuis l'écran d'accueil.
+7. Pour envoyer une vidéo : ouvre YouTube → vidéo → **Partager** → choisis **YT Collector**.
+
+Si **YT Collector** n'apparaît pas dans le menu de partage, ouvre d'abord l'app une fois depuis l'écran d'accueil, puis réessaie depuis YouTube.
 
 ### iPhone
-1. ouvrir l'URL dans Safari
-2. Partager → Ajouter à l'écran d'accueil
-3. ouvrir l'app depuis l'écran d'accueil
-4. si le partage direct n'apparaît pas, utiliser le fallback manuel coller/envoyer
+
+1. Ouvre l'URL de la PWA dans **Safari** sur iPhone.
+2. Appuie sur le bouton **Partager** de Safari.
+3. Choisis **Ajouter à l'écran d'accueil**.
+4. Confirme avec **Ajouter**.
+5. Ouvre **YT Collector** depuis l'écran d'accueil.
+6. Si le partage direct depuis YouTube n'apparaît pas, copie le lien YouTube puis colle-le dans l'app avec le bouton **Coller depuis le presse-papiers**.
+
+### Utilisation après installation
+
+L'app accepte seulement les liens qui commencent par :
+
+```text
+https://www.youtube.com/watch?v=
+```
+
+Si YouTube ajoute des paramètres comme `list` ou `start_radio`, l'app nettoie le lien avant l'envoi.
+
+Exemple :
+
+```text
+https://www.youtube.com/watch?v=6_pcEt9mPTc&list=RD6_pcEt9mPTc&start_radio=1
+-> https://www.youtube.com/watch?v=6_pcEt9mPTc
+```
+
+Après l'envoi réussi, tu dois voir le message **Vidéo ajoutée avec succès** ou **Video added successfully** selon la langue sélectionnée.
 
 Le `share_target` permet à une PWA installée de devenir une cible dans le menu de partage système. citeturn721182search2
 
@@ -159,6 +190,23 @@ Le `share_target` permet à une PWA installée de devenir une cible dans le menu
 
 - `GET /health`
 - `POST https://api.angkorvibe.com/youtube`
+- `POST https://api.angkorvibe.com/client-log` (diagnostics frontend)
+
+## Logs locaux
+
+Les services écrivent maintenant des logs dans le dossier du projet `C:\dev\khmer_karaoke\yt-share-pwa` par défaut :
+
+- `backend.log` : démarrage Flask, requêtes HTTP, clé API invalide, erreurs MQTT
+- `frontend.log` : diagnostics envoyés par la PWA (`submit_start`, `submit_response`, `submit_fetch_error`, etc.)
+- `pipeline.log` : sortie console de `pipeline/karaoke_pipeline.py`
+
+Tu peux changer le dossier avec `YT_SHARE_LOG_DIR`. Exemple dans `backend/.env` :
+
+```text
+YT_SHARE_LOG_DIR=C:\dev\khmer_karaoke\yt-share-pwa
+```
+
+Important : si l'erreur est **Unable to reach the server** et que `frontend.log` ne reçoit rien au moment du test, cela veut dire que le navigateur n'arrive probablement pas à joindre l'API du tout (DNS, Cloudflare Tunnel, CORS, backend arrêté, mauvais `API_BASE_URL`).
 
 ## Payload `/youtube`
 
